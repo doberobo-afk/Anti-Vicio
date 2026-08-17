@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anti-Vício</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#16a34a">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Segoe UI,Arial}
+body{background:#0a0a0a;color:#e5e7eb;padding:16px; max-width:600px; margin:0 auto;}
+.tabs{display:flex;gap:8px;margin-bottom:16px}
+.tab{flex:1;padding:10px;background:#222;border:none;color:#aaa;border-radius:8px;cursor:pointer}
+.tab.active{background:#16a34a;color:#000;font-weight:bold}
+.card{background:#1a1a1a;padding:20px;border-radius:12px;border:1px solid #333;margin-bottom:15px}
+h1{color:#4ade80;text-align:center;margin-bottom:16px;display:flex;align-items:center;gap:12px;justify-content:center}
+label{font-size:14px;color:#aaa;display:block;margin-top:10px}
+input,button,select{width:100%;padding:12px;margin-top:5px;background:#222;color:white;border:1px solid #444;border-radius:8px;font-size:16px}
+button{background:linear-gradient(90deg,#16a34a,#22c55e);color:#000;font-weight:bold;border:none;cursor:pointer;margin-top:15px}
+.btn-panico{background:linear-gradient(90deg,#dc2626,#ef4444);color:#fff;margin-top:10px}
+.info{font-size:18px;text-align:center;margin:10px 0}
+.verde{color:#4ade80;font-weight:bold;font-size:26px}
+.log{max-height:200px;overflow-y:auto;font-size:14px;background:#111;padding:8px;border-radius:8px}
+canvas{background:#111;border-radius:8px;margin-top:10px;width:100%}
+.dica{background:#222;padding:12px;border-radius:8px;margin-top:10px;border-left:4px solid #16a34a}
+.ok{color:#4ade80;font-size:12px;text-align:center;margin-top:10px}
+</style>
+</head>
+<body>
+
+<h1>
+  <img src="apple-touch-icon.png" alt="logo" style="width:45px;height:45px">
+  Anti-Vício
+</h1>
+
+<div class="tabs">
+    <button class="tab active" onclick="trocarAba('home', this)">Início</button>
+    <button class="tab" onclick="trocarAba('evolucao', this)">Evolução</button>
+    <button class="tab" onclick="trocarAba('config', this)">Config</button>
+</div>
+
+<!-- ABA INICIO -->
+<div id="home" class="aba">
+    <div class="card">
+        <h3>Próximo Horário</h3>
+        <div class="info">Faltam: <span id="contagem" class="verde">--:--</span></div>
+        <div class="info">Intervalo: <span id="intervaloAtual">60</span> min</div>
+        <button onclick="registreiFumo()">✅ Registrei que Fumei</button>
+        <button onclick="adiar15()" style="background:#444;color:#fff">⏰ Adiar 15min</button>
+        <button class="btn-panico" onclick="botaoPanico()">🆘 Botão Pânico - Tô com vontade</button>
+        <div id="dicasPanico"></div>
+        <div id="msg" class="ok"></div>
+    </div>
+</div>
+
+<!-- ABA EVOLUCAO -->
+<div id="evolucao" class="aba" style="display:none">
+    <div class="card">
+        <h3>Evolução</h3>
+        <div class="info">Dias no plano: <span id="diasPlano" class="verde">0</span></div>
+        <div class="info">Total de cigarros: <span id="totalFumos" class="verde">0</span></div>
+        <div class="info">Economizado: <span id="economizado" class="verde">R$0</span></div>
+        <h4 style="margin-top:15px">Últimos 7 dias</h4>
+        <canvas id="grafico" width="400" height="200"></canvas>
+        <h4 style="margin-top:15px">Histórico</h4>
+        <div class="log" id="logFumos"></div>
+    </div>
+</div>
+
+<!-- ABA CONFIG -->
+<div id="config" class="aba" style="display:none">
+    <div class="card">
+        <h3>Configuração</h3>
+        <label>Horário que acorda</label>
+        <input type="time" id="horaInicio" value="08:00">
+        <label>Horário que dorme</label>
+        <input type="time" id="horaFim" value="23:00">
+        <label>Intervalo Inicial em minutos</label>
+        <input type="number" id="intervaloInicial" value="60" min="5">
+
+        <h4 style="margin-top:15px;color:#4ade80">Notificações</h4>
+        <label>Ativar Som</label>
+        <select id="ativarSom"><option value="1">Sim</option><option value="0">Não</option></select>
+        <label>Ativar Vibração</label>
+        <select id="ativarVibra"><option value="1">Sim</option><option value="0">Não</option></select>
+        <label>Notificar X minutos antes</label>
+        <input type="number" id="notificarAntes" value="0" min="0" max="30">
+
+        <label>Preço do maço R$</label>
+        <input type="number" id="precoMaco" value="12" step="0.5">
+        <label>Cigarros por maço</label>
+        <input type="number" id="cigarrosMaco" value="20">
+
+        <button onclick="salvarConfig()">💾 Salvar e Iniciar</button>
+        <button onclick="resetarTudo()" style="background:#c00;color:#fff">🗑️ Resetar Tudo</button>
+    </div>
+</div>
+
+<audio id="somNotificacao" src="alarm_clock.ogg" preload="auto"></audio>
+
+<script>
+let dados = JSON.parse(localStorage.getItem('antivicioV7')) || null;
+let timer;
+
+const dicas = [
+    "Beba um copo d'água gelada agora",
+    "Faça 10 respirações profundas",
+    "Mastigue um chiclete ou chupe uma bala",
+    "Lave o rosto e escove os dentes",
+    "Saia pra caminhar 5 minutos"
+];
+
+function trocarAba(id, btn){
+    document.querySelectorAll('.aba').forEach(a=>a.style.display='none');
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.getElementById(id).style.display='block';
+    btn.classList.add('active');
+    if(id==='evolucao') carregarEvolucao();
+}
+
+document.body.addEventListener('click', ()=>{document.getElementById('somNotificacao').play().then(()=>{document.getElementById('somNotificacao').pause()}).catch(()=>{})}, {once: true});
+if('Notification' in window) Notification.requestPermission();
+
+function salvarConfig(){
+    dados = {
+        horaInicio: document.getElementById('horaInicio').value,
+        horaFim: document.getElementById('horaFim').value,
+        intervaloBase: parseInt(document.getElementById('intervaloInicial').value),
+        ativarSom: document.getElementById('ativarSom').value,
+        ativarVibra: document.getElementById('ativarVibra').value,
+        notificarAntes: parseInt(document.getElementById('notificarAntes').value),
+        precoMaco: parseFloat(document.getElementById('precoMaco').value),
+        cigarrosMaco: parseInt(document.getElementById('cigarrosMaco').value),
+        dataInicio: new Date().toISOString(),
+        historico: [],
+        proximoFumo: 0
+    };
+    dados.proximoFumo = calcularProximo(new Date());
+    salvar();
+    mostrarMsg("Configuração salva!");
+    trocarAba('home', document.querySelector('.tab'));
+    iniciarTimer();
+}
+
+function calcularIntervaloAtual(){
+    if(!dados) return 60;
+    const dias = Math.floor((Date.now() - new Date(dados.dataInicio)) / 86400000);
+    const semanas = Math.floor(dias / 7);
+    return Math.min(dados.intervaloBase * Math.pow(2, semanas), 1440);
+}
+
+function calcularProximo(dataBase){
+    if(!dados) return Date.now() + 60000;
+    const intervalo = calcularIntervaloAtual();
+    let agora = new Date();
+    let proximo = new Date(agora.getTime() + intervalo*60000);
+
+    const [hI, mI] = dados.horaInicio.split(':').map(Number);
+    const [hF, mF] = dados.horaFim.split(':').map(Number);
+    let inicio = new Date(agora); inicio.setHours(hI, mI, 0,0);
+    let fim = new Date(agora); fim.setHours(hF, mF, 0,0);
+    if(fim <= inicio) fim.setDate(fim.getDate() + 1);
+
+    if(proximo > fim) {
+        proximo = new Date(inicio);
+        proximo.setDate(proximo.getDate()+1);
+    }
+    if(proximo < inicio) proximo = inicio;
+
+    return proximo.getTime();
+}
+
+function iniciarTimer(){
+    if(!dados) return;
+    clearInterval(timer);
+    timer = setInterval(atualizarTela, 1000);
+    atualizarTela();
+}
+
+function atualizarTela(){
+    if(!dados) return;
+    const intervalo = calcularIntervaloAtual();
+    document.getElementById('intervaloAtual').innerText = intervalo;
+    const falta = dados.proximoFumo - Date.now() - (dados.notificarAntes*60000);
+
+    if(falta <= 0){
+        if(dados.ativarSom == 1) document.getElementById('somNotificacao').play();
+        if(dados.ativarVibra == 1 && navigator.vibrate) navigator.vibrate([200,100,200]);
+        new Notification("🚭 Anti-Vício", {body: `Já passou ${intervalo}min`});
+
+        dados.proximoFumo = Date.now() + 2000;
+        salvar();
+        setTimeout(()=>{
+            dados.proximoFumo = calcularProximo(new Date());
+            salvar();
+            atualizarTela();
+        }, 2000);
+    }
+    const min = Math.floor(Math.max(0,falta)/60000);
+    const seg = Math.floor((Math.max(0,falta)%60000)/1000);
+    document.getElementById('contagem').innerText = `${min}:${seg<10?'0':''}${seg}`;
+}
+
+function registreiFumo(){
+    if(!dados) return mostrarMsg("Configure primeiro!");
+    dados.historico.push({data: new Date().toISOString(), tipo: 'fumou'});
+    dados.proximoFumo = calcularProximo(new Date());
+    salvar(); mostrarMsg("Registrado!"); atualizarTela();
+}
+
+function adiar15(){
+    if(!dados) return mostrarMsg("Configure primeiro!");
+    dados.proximoFumo = Date.now() + 15*60000;
+    dados.historico.push({data: new Date().toISOString(), tipo: 'adiou'});
+    salvar(); mostrarMsg("Adiado 15min"); atualizarTela();
+}
+
+function botaoPanico(){
+    const container = document.getElementById('dicasPanico');
+    container.innerHTML = '<h4>Respira... você consegue! Tente isso:</h4>';
+    for(let i=0; i<3; i++){
+        const dica = dicas[Math.floor(Math.random()*dicas.length)];
+        container.innerHTML += `<div class="dica">${i+1}. ${dica}</div>`;
+    }
+    container.innerHTML += `<button onclick="adiar15()" style="background:#444">Consegui! Adiar 15min</button>`;
+}
+
+function carregarEvolucao(){
+    if(!dados) return;
+    const dias = Math.floor((Date.now() - new Date(dados.dataInicio)) / 86400000) + 1;
+    document.getElementById('diasPlano').innerText = dias;
+    const totalFumou = dados.historico.filter(h=>h.tipo==='fumou').length;
+    document.getElementById('totalFumos').innerText = totalFumou;
+
+    const valorCigarro = dados.precoMaco / dados.cigarrosMaco;
+    const economizado = totalFumou * valorCigarro;
+    document.getElementById('economizado').innerText = `R$${economizado.toFixed(2)}`;
+
+    const canvas = document.getElementById('grafico');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,400,200);
+    ctx.font = '12px Arial';
+    const ultimos7 = [];
+    for(let i=6; i>=0; i--){
+        const data = new Date(); data.setDate(data.getDate()-i);
+        const qtd = dados.historico.filter(h=>h.tipo==='fumou' && new Date(h.data).toDateString() === data.toDateString()).length;
+        ultimos7.push(qtd);
+    }
+    const max = Math.max(...ultimos7, 1);
+    ultimos7.forEach((qtd, i)=>{
+        const h = (qtd/max)*150;
+        ctx.fillStyle = '#16a34a';
+        ctx.fillRect(i*55+20, 180-h, 40, h);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(qtd, i*55+35, 175-h);
+    });
+
+    const log = document.getElementById('logFumos');
+    log.innerHTML = dados.historico.slice(-20).reverse().map(h=>{
+        const icone = h.tipo==='fumou'? '🚬' : '⏰';
+        const texto = h.tipo==='fumou'? 'Fumou' : 'Adiou 15min';
+        return `<div>${new Date(h.data).toLocaleString('pt-BR')} - ${icone} ${texto}</div>`;
+    }).join('');
+}
+
+function salvar(){localStorage.setItem('antivicioV7', JSON.stringify(dados));}
+function mostrarMsg(msg){document.getElementById('msg').innerText = msg; setTimeout(()=>{document.getElementById('msg').innerText=''},2000)}
+function resetarTudo(){if(confirm("Apagar tudo?")){localStorage.removeItem('antivicioV7'); location.reload();}}
+
+if(dados){
+    document.getElementById('horaInicio').value = dados.horaInicio;
+    document.getElementById('horaFim').value = dados.horaFim;
+    document.getElementById('intervaloInicial').value = dados.intervaloBase;
+    iniciarTimer();
+} else { trocarAba('config', document.querySelectorAll('.tab')[2]); }
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
