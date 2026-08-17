@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.anti_vicio.twa",
+        "sha256_cert_fingerprints": ["EB:4C:F7:3B:DC:A0:BA:D8:66:EE:2D:B5:22:68:91:E9:4D:84:F5:3F:2C:5A:23:DC:B9:04:E4:6B:0B:4F:CF:97"]
+      }
+    }]
