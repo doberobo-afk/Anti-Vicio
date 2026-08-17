@@ -2,8 +2,8 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Anti-Vício v9.3</title>
-<link rel="manifest" href="manifest.json?v=9.3">
+<title>Anti-Vício v9.4</title>
+<link rel="manifest" href="manifest.json?v=9.4">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#16a34a">
 <style>
@@ -29,7 +29,7 @@ canvas{background:#111;border-radius:8px;margin-top:10px;width:100%}
 .dica{background:#222;padding:12px;border-radius:8px;margin-top:10px;border-left:4px solid #16a34a}
 .ok{color:#4ade80;font-size:12px;text-align:center;margin-top:10px}
 .alerta{color:#fbbf24;font-size:14px;text-align:center;margin-top:10px;font-weight:bold}
-.oculto{display:none!important} /* CLASSE NOVA PRA CONTROLAR */
+.oculto{display:none!important}
 </style>
 </head>
 <body>
@@ -58,7 +58,6 @@ canvas{background:#111;border-radius:8px;margin-top:10px;width:100%}
         <button id="btnPausar" onclick="pausarAteAcordar()" class="btn-pausar">🌙 Pausar até eu acordar</button>
         <button id="btnVoltar" onclick="voltarContagem()" class="btn-pausar oculto" style="background:#16a34a">▶️ Voltar Contagem</button>
         <button class="btn-panico" onclick="botaoPanico()">🆘 Botão Pânico - Tô com vontade</button>
-        <button onclick="forcarTesteAlarme()" style="background:#8b5cf6;color:#fff">🧪 Testar Alarme Agora</button>
         <div id="dicasPanico"></div>
         <div id="msg" class="ok"></div>
     </div>
@@ -84,7 +83,7 @@ canvas{background:#111;border-radius:8px;margin-top:10px;width:100%}
         <label>Horário que dorme</label>
         <input type="time" id="horaFim" value="03:00">
         <label>Intervalo Inicial em minutos</label>
-        <input type="number" id="intervaloInicial" value="1" min="1">
+        <input type="number" id="intervaloInicial" value="60" min="5">
         <h4 style="margin-top:15px;color:#4ade80">Notificações</h4>
         <label>Ativar Som</label>
         <select id="ativarSom"><option value="1">Sim</option><option value="0">Não</option></select>
@@ -100,7 +99,7 @@ canvas{background:#111;border-radius:8px;margin-top:10px;width:100%}
 <audio id="somNotificacao" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto" loop></audio>
 
 <script>
-const STORAGE_KEY = 'antivicioV93';
+const STORAGE_KEY = 'antivicioV94';
 let dados = JSON.parse(localStorage.getItem(STORAGE_KEY)) || null;
 let timer;
 let alarmeTocando = false;
@@ -118,10 +117,9 @@ function trocarAba(id, btn){
 document.body.addEventListener('click', ()=>{document.getElementById('somNotificacao').play().then(()=>{document.getElementById('somNotificacao').pause()}).catch(()=>{})}, {once: true});
 if('Notification' in window) Notification.requestPermission();
 
-// CHECA QUANDO VOLTA PRA TELA - CORREÇÃO PRINCIPAL
 document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
-        atualizarTela(); // Força atualizar quando desbloqueia o cel
+        atualizarTela();
     }
 });
 
@@ -133,7 +131,7 @@ function salvarConfig(){
     dados = {horaInicio: document.getElementById('horaInicio').value, horaFim: document.getElementById('horaFim').value, intervaloBase: parseInt(document.getElementById('intervaloInicial').value), ativarSom: document.getElementById('ativarSom').value, ativarVibra: document.getElementById('ativarVibra').value, notificarAntes: parseInt(document.getElementById('notificarAntes').value), dataInicio: new Date().toISOString(), historico: [], proximoFumo: 0, aguardandoRegistro: false, pausado: false};
     dados.proximoFumo = Date.now() + (dados.intervaloBase * 60000);
     salvar();
-    mostrarMsg("Configuração salva! Contador zerado.");
+    mostrarMsg("Configuração salva! Contador iniciado.");
     trocarAba('home', document.querySelector('.tab'));
     iniciarTimer();
 }
@@ -188,14 +186,6 @@ function pararAlarme(){
   if('serviceWorker' in navigator) navigator.serviceWorker.getRegistration().then(r=>r.getNotifications().then(n=>n.forEach(not=>not.close())));
 }
 
-function forcarTesteAlarme(){
-  if(!dados) return mostrarMsg("Configure primeiro!");
-  dados.proximoFumo = Date.now() - 1000;
-  dados.aguardandoRegistro = false;
-  salvar();
-  atualizarTela();
-}
-
 function pausarAteAcordar(){
     if(!dados) return;
     dados.pausado = true;
@@ -245,19 +235,18 @@ function atualizarTela(){
         salvar();
     }
 
-    // USANDO CLASSLIST AGORA EM VEZ DE STYLE
     if(dados.aguardandoRegistro){
         document.getElementById('contagem').innerText = "00:00";
         document.getElementById('contagem').classList.add('vermelho');
-        document.getElementById('btnEstender').classList.remove('oculto'); // MOSTRA
-        document.getElementById('btnParar').classList.remove('oculto'); // MOSTRA
+        document.getElementById('btnEstender').classList.remove('oculto');
+        document.getElementById('btnParar').classList.remove('oculto');
         document.getElementById('btnPausar').classList.remove('oculto');
         document.getElementById('btnVoltar').classList.add('oculto');
         document.getElementById('alertaMsg').innerText = "Chegou a hora. Respira e decide com consciência.";
     } else {
         document.getElementById('contagem').classList.remove('vermelho','azul');
-        document.getElementById('btnEstender').classList.add('oculto'); // ESCONDE
-        document.getElementById('btnParar').classList.add('oculto'); // ESCONDE
+        document.getElementById('btnEstender').classList.add('oculto');
+        document.getElementById('btnParar').classList.add('oculto');
         document.getElementById('btnPausar').classList.remove('oculto');
         document.getElementById('btnVoltar').classList.add('oculto');
         document.getElementById('alertaMsg').innerText = "";
