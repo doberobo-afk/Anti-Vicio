@@ -1,4 +1,4 @@
-const CACHE_NAME = 'anti-vicio-v1';
+const CACHE_NAME = 'anti-vicio-v9.4';
 const urlsToCache = [
   'index.html',
   'manifest.json',
