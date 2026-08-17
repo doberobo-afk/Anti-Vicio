@@ -2,104 +2,124 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Anti-Vício v9.4</title>
-<link rel="manifest" href="manifest.json?v=9.4">
+<title>Anti-Vício v9.7</title>
+<link rel="manifest" href="manifest.json?v=9.7">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#16a34a">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Segoe UI,Arial}
 body{background:#0a0a0a;color:#e5e7eb;padding:16px; max-width:600px; margin:0 auto;}
-.tabs{display:flex;gap:8px;margin-bottom:16px}
-.tab{flex:1;padding:10px;background:#222;border:none;color:#aaa;border-radius:8px;cursor:pointer}
-.tab.active{background:#16a34a;color:#000;font-weight:bold}
-.card{background:#1a1a1a;padding:20px;border-radius:12px;border:1px solid #333;margin-bottom:15px}
-h1{color:#4ade80;text-align:center;margin-bottom:16px;display:flex;align-items:center;gap:12px;justify-content:center}
+nav.tabs{display:flex;gap:8px;margin-bottom:16px}
+button.tab{flex:1;padding:10px;background:#222;border:none;color:#aaa;border-radius:8px;cursor:pointer}
+button.tab.active{background:#16a34a;color:#000;font-weight:bold}
+article.card{background:#1a1a1a;padding:20px;border-radius:12px;border:1px solid #333;margin-bottom:15px}
+header h1{color:#4ade80;text-align:center;margin-bottom:16px;display:flex;align-items:center;gap:12px;justify-content:center}
 label{font-size:14px;color:#aaa;display:block;margin-top:10px}
 input,button,select{width:100%;padding:12px;margin-top:5px;background:#222;color:white;border:1px solid #444;border-radius:8px;font-size:16px}
 button{background:linear-gradient(90deg,#16a34a,#22c55e);color:#000;font-weight:bold;border:none;cursor:pointer;margin-top:15px}
 .btn-panico{background:linear-gradient(90deg,#dc2626,#ef4444);color:#fff;margin-top:10px}
 .btn-parar{background:linear-gradient(90deg,#f59e0b,#fbbf24);color:#000;margin-top:10px}
 .btn-pausar{background:linear-gradient(90deg,#3b82f6,#60a5fa);color:#fff;margin-top:10px}
-.info{font-size:18px;text-align:center;margin:10px 0}
+p.info{font-size:18px;text-align:center;margin:10px 0}
 .verde{color:#4ade80;font-weight:bold;font-size:26px}
 .vermelho{color:#ef4444}
 .azul{color:#60a5fa}
-.log{max-height:200px;overflow-y:auto;font-size:14px;background:#111;padding:8px;border-radius:8px}
+section.log{max-height:200px;overflow-y:auto;font-size:14px;background:#111;padding:8px;border-radius:8px}
 canvas{background:#111;border-radius:8px;margin-top:10px;width:100%}
-.dica{background:#222;padding:12px;border-radius:8px;margin-top:10px;border-left:4px solid #16a34a}
-.ok{color:#4ade80;font-size:12px;text-align:center;margin-top:10px}
-.alerta{color:#fbbf24;font-size:14px;text-align:center;margin-top:10px;font-weight:bold}
+aside.dica{background:#222;padding:12px;border-radius:12px;margin-top:10px;border-left:4px solid #16a34a}
+p.ok{color:#4ade80;font-size:12px;text-align:center;margin-top:10px}
+p.alerta{color:#fbbf24;font-size:14px;text-align:center;margin-top:10px;font-weight:bold}
 .oculto{display:none!important}
+fieldset{border:1px solid #333;border-radius:8px;padding:10px;margin-top:10px}
+legend{color:#4ade80;padding:0 5px}
 </style>
 </head>
 <body>
 
-<h1>
-  <img src="apple-touch-icon.png" alt="logo" style="width:45px;height:45px">
-  Anti-Vício
-</h1>
+<header>
+  <h1>
+    <img src="apple-touch-icon.png" alt="Logo Anti-Vício" style="width:45px;height:45px">
+    Anti-Vício
+  </h1>
+</header>
 
-<div class="tabs">
-    <button class="tab active" onclick="trocarAba('home', this)">Início</button>
-    <button class="tab" onclick="trocarAba('evolucao', this)">Evolução</button>
-    <button class="tab" onclick="trocarAba('config', this)">Config</button>
-</div>
+<nav class="tabs" role="tablist" aria-label="Navegação principal">
+    <button class="tab active" role="tab" aria-selected="true" onclick="trocarAba('home', this)">Início</button>
+    <button class="tab" role="tab" aria-selected="false" onclick="trocarAba('evolucao', this)">Evolução</button>
+    <button class="tab" role="tab" aria-selected="false" onclick="trocarAba('config', this)">Config</button>
+</nav>
 
-<div id="home" class="aba">
-    <div class="card">
-        <h3>Próximo Horário</h3>
-        <div class="info">Faltam: <span id="contagem" class="verde">--:--</span></div>
-        <div class="info">Intervalo: <span id="intervaloAtual">60</span> min</div>
-        <div id="alertaMsg" class="alerta"></div>
-        <button id="btnFumei" onclick="registreiFumo()">✅ Registrei que Fumei</button>
-        <button id="btnParar" onclick="pararAlarme()" class="btn-parar oculto">🔇 Parar Alarme</button>
-        <button id="btnEstender" onclick="estender15()" class="oculto" style="background:#444;color:#fff">⏳ Estender +15min</button>
-        <button onclick="adiar15()" style="background:#444;color:#fff">⏰ Adiar 15min</button>
-        <button id="btnPausar" onclick="pausarAteAcordar()" class="btn-pausar">🌙 Pausar até eu acordar</button>
-        <button id="btnVoltar" onclick="voltarContagem()" class="btn-pausar oculto" style="background:#16a34a">▶️ Voltar Contagem</button>
-        <button class="btn-panico" onclick="botaoPanico()">🆘 Botão Pânico - Tô com vontade</button>
-        <div id="dicasPanico"></div>
-        <div id="msg" class="ok"></div>
-    </div>
-</div>
+<main>
+  <section id="home" class="aba" role="tabpanel">
+      <article class="card" aria-labelledby="titulo-home">
+          <h2 id="titulo-home">Próximo Horário</h2>
+          <p class="info">Faltam: <strong id="contagem" class="verde" aria-live="polite">--:--</strong></p>
+          <p class="info">Intervalo: <span id="intervaloAtual">60</span> min</p>
+          <p id="alertaMsg" class="alerta" aria-live="assertive"></p>
 
-<div id="evolucao" class="aba" style="display:none">
-    <div class="card">
-        <h3>Evolução</h3>
-        <div class="info">Dias no plano: <span id="diasPlano" class="verde">0</span></div>
-        <div class="info">Total de cigarros: <span id="totalFumos" class="verde">0</span></div>
-        <h4 style="margin-top:15px">Últimos 7 dias</h4>
-        <canvas id="grafico" width="400" height="200"></canvas>
-        <h4 style="margin-top:15px">Histórico</h4>
-        <div class="log" id="logFumos"></div>
-    </div>
-</div>
+          <button id="btnFumei" onclick="registreiFumo()">✅ Registrei que Fumei</button>
+          <button id="btnParar" onclick="pararAlarme()" class="btn-parar oculto">🔇 Parar Alarme</button>
+          <button id="btnEstender" onclick="estender15()" class="oculto" style="background:#444;color:#fff">⏳ Estender +15min</button>
+          <button onclick="adiar15()" style="background:#444;color:#fff">⏰ Adiar 15min</button>
+          <button id="btnPausar" onclick="pausarAteAcordar()" class="btn-pausar">🌙 Pausar até eu acordar</button>
+          <button id="btnVoltar" onclick="voltarContagem()" class="btn-pausar oculto" style="background:#16a34a">▶️ Voltar Contagem</button>
+          <button class="btn-panico" onclick="botaoPanico()">🆘 Botão Pânico - Tô com vontade</button>
 
-<div id="config" class="aba" style="display:none">
-    <div class="card">
-        <h3>Configuração</h3>
-        <label>Horário que acorda</label>
-        <input type="time" id="horaInicio" value="08:00">
-        <label>Horário que dorme</label>
-        <input type="time" id="horaFim" value="03:00">
-        <label>Intervalo Inicial em minutos</label>
-        <input type="number" id="intervaloInicial" value="60" min="5">
-        <h4 style="margin-top:15px;color:#4ade80">Notificações</h4>
-        <label>Ativar Som</label>
-        <select id="ativarSom"><option value="1">Sim</option><option value="0">Não</option></select>
-        <label>Ativar Vibração</label>
-        <select id="ativarVibra"><option value="1">Sim</option><option value="0">Não</option></select>
-        <label>Notificar X minutos antes</label>
-        <input type="number" id="notificarAntes" value="0" min="0" max="30">
-        <button onclick="salvarConfig()">💾 Salvar e Iniciar</button>
-        <button onclick="resetarTudo()" style="background:#c00;color:#fff">🗑️ Resetar Tudo</button>
-    </div>
-</div>
+          <div id="dicasPanico" aria-live="polite"></div>
+          <p id="msg" class="ok" aria-live="polite"></p>
+      </article>
+  </section>
+
+  <section id="evolucao" class="aba" role="tabpanel" style="display:none">
+      <article class="card" aria-labelledby="titulo-evolucao">
+          <h2 id="titulo-evolucao">Evolução</h2>
+          <p class="info">Dias no plano: <span id="diasPlano" class="verde">0</span></p>
+          <p class="info">Total de cigarros: <span id="totalFumos" class="verde">0</span></p>
+          <h3 style="margin-top:15px">Últimos 7 dias</h3>
+          <canvas id="grafico" width="400" height="200" role="img" aria-label="Gráfico dos últimos 7 dias"></canvas>
+          <h3 style="margin-top:15px">Histórico</h3>
+          <section class="log" id="logFumos" aria-label="Lista de histórico"></section>
+      </article>
+  </section>
+
+  <section id="config" class="aba" role="tabpanel" style="display:none">
+      <form class="card" aria-labelledby="titulo-config" onsubmit="event.preventDefault(); salvarConfig();">
+          <h2 id="titulo-config">Configuração</h2>
+
+          <fieldset>
+            <legend>Horários</legend>
+            <label for="horaInicio">Horário que acorda</label>
+            <input type="time" id="horaInicio" value="08:00" required>
+
+            <label for="horaFim">Horário que dorme</label>
+            <input type="time" id="horaFim" value="03:00" required>
+          </fieldset>
+
+          <label for="intervaloInicial">Intervalo Inicial em minutos</label>
+          <input type="number" id="intervaloInicial" value="60" min="5" required>
+
+          <fieldset>
+            <legend>Notificações</legend>
+            <label for="ativarSom">Ativar Som</label>
+            <select id="ativarSom"><option value="1">Sim</option><option value="0">Não</option></select>
+
+            <label for="ativarVibra">Ativar Vibração</label>
+            <select id="ativarVibra"><option value="1">Sim</option><option value="0">Não</option></select>
+
+            <label for="notificarAntes">Notificar X minutos antes</label>
+            <input type="number" id="notificarAntes" value="0" min="0" max="30">
+          </fieldset>
+
+          <button type="submit">💾 Salvar e Iniciar</button>
+          <button type="button" onclick="resetarTudo()" style="background:#c00;color:#fff">🗑️ Resetar Tudo</button>
+      </form>
+  </section>
+</main>
 
 <audio id="somNotificacao" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto" loop></audio>
 
 <script>
-const STORAGE_KEY = 'antivicioV94';
+const STORAGE_KEY = 'antivicioV97';
 let dados = JSON.parse(localStorage.getItem(STORAGE_KEY)) || null;
 let timer;
 let alarmeTocando = false;
@@ -108,9 +128,10 @@ const dicas = ["Beba um copo d'água gelada agora","Faça 10 respirações profu
 
 function trocarAba(id, btn){
     document.querySelectorAll('.aba').forEach(a=>a.style.display='none');
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t=>{t.classList.remove('active'); t.setAttribute('aria-selected','false')});
     document.getElementById(id).style.display='block';
     btn.classList.add('active');
+    btn.setAttribute('aria-selected','true');
     if(id==='evolucao') carregarEvolucao();
 }
 
@@ -120,11 +141,22 @@ if('Notification' in window) Notification.requestPermission();
 document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
         atualizarTela();
+        agendarNotificacaoSW();
     }
 });
 
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').catch(err=>console.log("SW erro", err));
+  navigator.serviceWorker.register('sw.js?v=9.7');
+}
+
+function agendarNotificacaoSW(){
+  if(!dados ||!('serviceWorker' in navigator)) return;
+  const tempoAteAlarme = dados.proximoFumo - Date.now() - (dados.notificarAntes*60000);
+  if(tempoAteAlarme > 0){
+    navigator.serviceWorker.ready.then(reg => {
+      reg.active.postMessage({type: 'AGENDAR_ALARME', tempo: tempoAteAlarme, dados: dados});
+    });
+  }
 }
 
 function salvarConfig(){
@@ -134,6 +166,7 @@ function salvarConfig(){
     mostrarMsg("Configuração salva! Contador iniciado.");
     trocarAba('home', document.querySelector('.tab'));
     iniciarTimer();
+    agendarNotificacaoSW();
 }
 
 function calcularIntervaloAtual(){
@@ -165,17 +198,6 @@ function tocarAlarme(){
   alarmeTocando = true;
   if(dados.ativarSom == 1) document.getElementById('somNotificacao').play().catch(()=>{});
   if(dados.ativarVibra == 1 && navigator.vibrate) navigator.vibrate([500,200,500,200,500]);
-  if('serviceWorker' in navigator && Notification.permission === 'granted'){
-    navigator.serviceWorker.ready.then(reg => {
-      reg.showNotification("🚭 Anti-Vício", {
-        body: "Chegou a hora! Você consegue!",
-        icon: "apple-touch-icon.png",
-        vibrate: [500,200,500,200,500],
-        requireInteraction: true,
-        tag: "alarme-antivicio"
-      });
-    });
-  }
 }
 
 function pararAlarme(){
@@ -183,7 +205,6 @@ function pararAlarme(){
   document.getElementById('somNotificacao').pause();
   document.getElementById('somNotificacao').currentTime = 0;
   document.getElementById('btnParar').classList.add('oculto');
-  if('serviceWorker' in navigator) navigator.serviceWorker.getRegistration().then(r=>r.getNotifications().then(n=>n.forEach(not=>not.close())));
 }
 
 function pausarAteAcordar(){
@@ -197,6 +218,7 @@ function pausarAteAcordar(){
     salvar();
     mostrarMsg(`Pausado! Volta às ${dados.horaInicio}`);
     atualizarTela();
+    agendarNotificacaoSW();
 }
 
 function voltarContagem(){
@@ -206,6 +228,7 @@ function voltarContagem(){
     salvar();
     mostrarMsg("Contagem retomada!");
     atualizarTela();
+    agendarNotificacaoSW();
 }
 
 function atualizarTela(){
@@ -223,6 +246,7 @@ function atualizarTela(){
             dados.pausado = false;
             dados.proximoFumo = Date.now() + (intervalo * 60000);
             salvar();
+            agendarNotificacaoSW();
         }
         return;
     }
@@ -265,15 +289,49 @@ function registreiFumo(){
     salvar();
     mostrarMsg("✅ Registrado! Novo ciclo iniciado.");
     atualizarTela();
+    agendarNotificacaoSW();
 }
 
-function adiar15(){if(!dados) return mostrarMsg("Configure primeiro!"); pararAlarme(); dados.proximoFumo = Date.now() + 15*60000; dados.aguardandoRegistro = false; dados.historico.push({data: new Date().toISOString(), tipo: 'adiou'}); salvar(); mostrarMsg("Adiado 15min"); atualizarTela();}
+function adiar15(){if(!dados) return mostrarMsg("Configure primeiro!"); pararAlarme(); dados.proximoFumo = Date.now() + 15*60000; dados.aguardandoRegistro = false; dados.historico.push({data: new Date().toISOString(), tipo: 'adiou'}); salvar(); mostrarMsg("Adiado 15min"); atualizarTela(); agendarNotificacaoSW();}
 
-function estender15(){if(!dados) return; pararAlarme(); dados.proximoFumo = Date.now() + 15*60000; dados.aguardandoRegistro = false; dados.historico.push({data: new Date().toISOString(), tipo: 'estendeu'}); salvar(); mostrarMsg("+15min concedidos. Você consegue!"); atualizarTela();}
+function estender15(){if(!dados) return; pararAlarme(); dados.proximoFumo = Date.now() + 15*60000; dados.aguardandoRegistro = false; dados.historico.push({data: new Date().toISOString(), tipo: 'estendeu'}); salvar(); mostrarMsg("+15min concedidos. Você consegue!"); atualizarTela(); agendarNotificacaoSW();}
 
-function botaoPanico(){const container = document.getElementById('dicasPanico'); container.innerHTML = '<h4>Respira... você consegue! Tente isso:</h4>'; for(let i=0; i<3; i++){const dica = dicas[Math.floor(Math.random()*dicas.length)]; container.innerHTML += `<div class="dica">${i+1}. ${dica}</div>`;} container.innerHTML += `<button onclick="adiar15()" style="background:#444">Consegui! Adiar 15min</button>`;}
+function botaoPanico(){
+  const container = document.getElementById('dicasPanico');
+  container.innerHTML = '<h3>Respira... você consegue! Tente isso:</h3>';
+  for(let i=0; i<3; i++){
+    const dica = dicas[Math.floor(Math.random()*dicas.length)];
+    container.innerHTML += `<aside class="dica">${i+1}. ${dica}</aside>`;
+  }
+  container.innerHTML += `<button onclick="adiar15()" style="background:#444">Consegui! Adiar 15min</button>`;
+}
 
-function carregarEvolucao(){if(!dados) return; const dias = Math.floor((Date.now() - new Date(dados.dataInicio)) / 86400000) + 1; document.getElementById('diasPlano').innerText = dias; const totalFumou = dados.historico.filter(h=>h.tipo==='fumou').length; document.getElementById('totalFumos').innerText = totalFumou; const canvas = document.getElementById('grafico'); const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,400,200); ctx.font = '12px Arial'; const ultimos7 = []; for(let i=6; i>=0; i--){const data = new Date(); data.setDate(data.getDate()-i); const qtd = dados.historico.filter(h=>h.tipo==='fumou' && new Date(h.data).toDateString() === data.toDateString()).length; ultimos7.push(qtd);} const max = Math.max(...ultimos7, 1); ultimos7.forEach((qtd, i)=>{const h = (qtd/max)*150; ctx.fillStyle = '#16a34a'; ctx.fillRect(i*55+20, 180-h, 40, h); ctx.fillStyle = '#fff'; ctx.fillText(qtd, i*55+35, 175-h);}); const log = document.getElementById('logFumos'); log.innerHTML = dados.historico.slice(-20).reverse().map(h=>{const icone = h.tipo==='fumou'? '🚬' : h.tipo==='adiou'? '⏰' : '⏳'; const texto = h.tipo==='fumou'? 'Fumou' : h.tipo==='adiou'? 'Adiou 15min' : 'Estendeu 15min'; return `<div>${new Date(h.data).toLocaleString('pt-BR')} - ${icone} ${texto}</div>`;}).join('');}
+function carregarEvolucao(){
+  if(!dados) return;
+  const dias = Math.floor((Date.now() - new Date(dados.dataInicio)) / 86400000) + 1;
+  document.getElementById('diasPlano').innerText = dias;
+  const totalFumou = dados.historico.filter(h=>h.tipo==='fumou').length;
+  document.getElementById('totalFumos').innerText = totalFumou;
+  const canvas = document.getElementById('grafico');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,400,200);
+  ctx.font = '12px Arial';
+  const ultimos7 = [];
+  for(let i=6; i>=0; i--){
+    const data = new Date();
+    data.setDate(data.getDate()-i);
+    const qtd = dados.historico.filter(h=>h.tipo==='fumou' && new Date(h.data).toDateString() === data.toDateString()).length;
+    ultimos7.push(qtd);
+  }
+  const max = Math.max(...ultimos7, 1);
+  ultimos7.forEach((qtd, i)=>{const h = (qtd/max)*150; ctx.fillStyle = '#16a34a'; ctx.fillRect(i*55+20, 180-h, 40, h); ctx.fillStyle = '#fff'; ctx.fillText(qtd, i*55+35, 175-h);});
+  const log = document.getElementById('logFumos');
+  log.innerHTML = dados.historico.slice(-20).reverse().map(h=>{
+    const icone = h.tipo==='fumou'? '🚬' : h.tipo==='adiou'? '⏰' : '⏳';
+    const texto = h.tipo==='fumou'? 'Fumou' : h.tipo==='adiou'? 'Adiou 15min' : 'Estendeu 15min';
+    return `<p>${new Date(h.data).toLocaleString('pt-BR')} - ${icone} ${texto}</p>`;
+  }).join('');
+}
 
 function salvar(){localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));}
 function mostrarMsg(msg){document.getElementById('msg').innerText = msg; setTimeout(()=>{document.getElementById('msg').innerText=''},3000)}
@@ -287,6 +345,7 @@ if(dados){
     document.getElementById('ativarVibra').value = dados.ativarVibra;
     document.getElementById('notificarAntes').value = dados.notificarAntes;
     iniciarTimer();
+    agendarNotificacaoSW();
 } else {
     trocarAba('config', document.querySelectorAll('.tab')[2]);
 }
