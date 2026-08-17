@@ -2,8 +2,8 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Anti-Vício v9.1</title>
-<link rel="manifest" href="manifest.json?v=9.1">
+<title>Anti-Vício v9.3</title>
+<link rel="manifest" href="manifest.json?v=9.3">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#16a34a">
 <style>
@@ -29,6 +29,7 @@ canvas{background:#111;border-radius:8px;margin-top:10px;width:100%}
 .dica{background:#222;padding:12px;border-radius:8px;margin-top:10px;border-left:4px solid #16a34a}
 .ok{color:#4ade80;font-size:12px;text-align:center;margin-top:10px}
 .alerta{color:#fbbf24;font-size:14px;text-align:center;margin-top:10px;font-weight:bold}
+.oculto{display:none!important} /* CLASSE NOVA PRA CONTROLAR */
 </style>
 </head>
 <body>
@@ -51,12 +52,13 @@ canvas{background:#111;border-radius:8px;margin-top:10px;width:100%}
         <div class="info">Intervalo: <span id="intervaloAtual">60</span> min</div>
         <div id="alertaMsg" class="alerta"></div>
         <button id="btnFumei" onclick="registreiFumo()">✅ Registrei que Fumei</button>
-        <button id="btnParar" onclick="pararAlarme()" class="btn-parar" style="display:none">🔇 Parar Alarme</button>
-        <button id="btnEstender" onclick="estender15()" style="background:#444;color:#fff;display:none">⏳ Estender +15min</button>
+        <button id="btnParar" onclick="pararAlarme()" class="btn-parar oculto">🔇 Parar Alarme</button>
+        <button id="btnEstender" onclick="estender15()" class="oculto" style="background:#444;color:#fff">⏳ Estender +15min</button>
         <button onclick="adiar15()" style="background:#444;color:#fff">⏰ Adiar 15min</button>
         <button id="btnPausar" onclick="pausarAteAcordar()" class="btn-pausar">🌙 Pausar até eu acordar</button>
-        <button id="btnVoltar" onclick="voltarContagem()" class="btn-pausar" style="display:none;background:#16a34a">▶️ Voltar Contagem</button>
+        <button id="btnVoltar" onclick="voltarContagem()" class="btn-pausar oculto" style="background:#16a34a">▶️ Voltar Contagem</button>
         <button class="btn-panico" onclick="botaoPanico()">🆘 Botão Pânico - Tô com vontade</button>
+        <button onclick="forcarTesteAlarme()" style="background:#8b5cf6;color:#fff">🧪 Testar Alarme Agora</button>
         <div id="dicasPanico"></div>
         <div id="msg" class="ok"></div>
     </div>
@@ -82,7 +84,7 @@ canvas{background:#111;border-radius:8px;margin-top:10px;width:100%}
         <label>Horário que dorme</label>
         <input type="time" id="horaFim" value="03:00">
         <label>Intervalo Inicial em minutos</label>
-        <input type="number" id="intervaloInicial" value="60" min="5">
+        <input type="number" id="intervaloInicial" value="1" min="1">
         <h4 style="margin-top:15px;color:#4ade80">Notificações</h4>
         <label>Ativar Som</label>
         <select id="ativarSom"><option value="1">Sim</option><option value="0">Não</option></select>
@@ -95,10 +97,10 @@ canvas{background:#111;border-radius:8px;margin-top:10px;width:100%}
     </div>
 </div>
 
-<audio id="somNotificacao" src="alarm_clock.ogg" preload="auto" loop></audio>
+<audio id="somNotificacao" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto" loop></audio>
 
 <script>
-const STORAGE_KEY = 'antivicioV91';
+const STORAGE_KEY = 'antivicioV93';
 let dados = JSON.parse(localStorage.getItem(STORAGE_KEY)) || null;
 let timer;
 let alarmeTocando = false;
@@ -116,6 +118,17 @@ function trocarAba(id, btn){
 document.body.addEventListener('click', ()=>{document.getElementById('somNotificacao').play().then(()=>{document.getElementById('somNotificacao').pause()}).catch(()=>{})}, {once: true});
 if('Notification' in window) Notification.requestPermission();
 
+// CHECA QUANDO VOLTA PRA TELA - CORREÇÃO PRINCIPAL
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        atualizarTela(); // Força atualizar quando desbloqueia o cel
+    }
+});
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(err=>console.log("SW erro", err));
+}
+
 function salvarConfig(){
     dados = {horaInicio: document.getElementById('horaInicio').value, horaFim: document.getElementById('horaFim').value, intervaloBase: parseInt(document.getElementById('intervaloInicial').value), ativarSom: document.getElementById('ativarSom').value, ativarVibra: document.getElementById('ativarVibra').value, notificarAntes: parseInt(document.getElementById('notificarAntes').value), dataInicio: new Date().toISOString(), historico: [], proximoFumo: 0, aguardandoRegistro: false, pausado: false};
     dados.proximoFumo = Date.now() + (dados.intervaloBase * 60000);
@@ -132,36 +145,56 @@ function calcularIntervaloAtual(){
     return Math.min(dados.intervaloBase * Math.pow(2, semanas), 1440);
 }
 
-// CORREÇÃO DEFINITIVA
 function calcularProximo(){
     if(!dados) return Date.now() + 60000;
     const intervalo = calcularIntervaloAtual();
     let agora = new Date();
-    let proximo = new Date(agora.getTime() + intervalo*60000); // SEMPRE +60min primeiro
-
+    let proximo = new Date(agora.getTime() + intervalo*60000);
     const [hI, mI] = dados.horaInicio.split(':').map(Number);
     const [hF, mF] = dados.horaFim.split(':').map(Number);
-
-    let inicioSono = new Date(agora); inicioSono.setHours(hF, mF, 0,0); // 03:00
-    let fimSono = new Date(agora); fimSono.setHours(hI, mI, 0,0); // 08:00
+    let inicioSono = new Date(agora); inicioSono.setHours(hF, mF, 0,0);
+    let fimSono = new Date(agora); fimSono.setHours(hI, mI, 0,0);
     if(fimSono <= inicioSono) fimSono.setDate(fimSono.getDate() + 1);
-
-    // REGRA NOVA: Só bloqueia se AGORA já estiver no horário de sono
     const agoraEstaDormindo = agora >= inicioSono && agora < fimSono;
-
-    // Se clicou enquanto estava dormindo, joga pra 08:00
-    if(agoraEstaDormindo){
-        proximo = new Date(fimSono);
-    }
-
+    if(agoraEstaDormindo){ proximo = new Date(fimSono); }
     return proximo.getTime();
 }
 
 function iniciarTimer(){if(!dados) return; clearInterval(timer); timer = setInterval(atualizarTela, 1000); atualizarTela();}
 
-function tocarAlarme(){if(alarmeTocando) return; alarmeTocando = true; if(dados.ativarSom == 1) document.getElementById('somNotificacao').play(); if(dados.ativarVibra == 1 && navigator.vibrate) navigator.vibrate([500,200,500,200,500]);}
+function tocarAlarme(){
+  if(alarmeTocando) return;
+  alarmeTocando = true;
+  if(dados.ativarSom == 1) document.getElementById('somNotificacao').play().catch(()=>{});
+  if(dados.ativarVibra == 1 && navigator.vibrate) navigator.vibrate([500,200,500,200,500]);
+  if('serviceWorker' in navigator && Notification.permission === 'granted'){
+    navigator.serviceWorker.ready.then(reg => {
+      reg.showNotification("🚭 Anti-Vício", {
+        body: "Chegou a hora! Você consegue!",
+        icon: "apple-touch-icon.png",
+        vibrate: [500,200,500,200,500],
+        requireInteraction: true,
+        tag: "alarme-antivicio"
+      });
+    });
+  }
+}
 
-function pararAlarme(){alarmeTocando = false; document.getElementById('somNotificacao').pause(); document.getElementById('somNotificacao').currentTime = 0; document.getElementById('btnParar').style.display = 'none';}
+function pararAlarme(){
+  alarmeTocando = false;
+  document.getElementById('somNotificacao').pause();
+  document.getElementById('somNotificacao').currentTime = 0;
+  document.getElementById('btnParar').classList.add('oculto');
+  if('serviceWorker' in navigator) navigator.serviceWorker.getRegistration().then(r=>r.getNotifications().then(n=>n.forEach(not=>not.close())));
+}
+
+function forcarTesteAlarme(){
+  if(!dados) return mostrarMsg("Configure primeiro!");
+  dados.proximoFumo = Date.now() - 1000;
+  dados.aguardandoRegistro = false;
+  salvar();
+  atualizarTela();
+}
 
 function pausarAteAcordar(){
     if(!dados) return;
@@ -191,13 +224,12 @@ function atualizarTela(){
     document.getElementById('intervaloAtual').innerText = intervalo;
 
     if(dados.pausado){
-        const falta = dados.proximoFumo - Date.now();
         document.getElementById('contagem').innerText = "PAUSADO";
         document.getElementById('contagem').classList.add('azul');
-        document.getElementById('btnPausar').style.display = 'none';
-        document.getElementById('btnVoltar').style.display = 'block';
+        document.getElementById('btnPausar').classList.add('oculto');
+        document.getElementById('btnVoltar').classList.remove('oculto');
         document.getElementById('alertaMsg').innerText = `Dormindo... volta às ${dados.horaInicio}`;
-        if(falta <= 0){
+        if(dados.proximoFumo - Date.now() <= 0){
             dados.pausado = false;
             dados.proximoFumo = Date.now() + (intervalo * 60000);
             salvar();
@@ -209,25 +241,25 @@ function atualizarTela(){
 
     if(falta <= 0 &&!dados.aguardandoRegistro){
         tocarAlarme();
-        new Notification("🚭 Anti-Vício", {body: `Chegou a hora! Você consegue!`});
         dados.aguardandoRegistro = true;
         salvar();
     }
 
+    // USANDO CLASSLIST AGORA EM VEZ DE STYLE
     if(dados.aguardandoRegistro){
         document.getElementById('contagem').innerText = "00:00";
         document.getElementById('contagem').classList.add('vermelho');
-        document.getElementById('btnEstender').style.display = 'block';
-        document.getElementById('btnParar').style.display = 'block';
-        document.getElementById('btnPausar').style.display = 'block';
-        document.getElementById('btnVoltar').style.display = 'none';
+        document.getElementById('btnEstender').classList.remove('oculto'); // MOSTRA
+        document.getElementById('btnParar').classList.remove('oculto'); // MOSTRA
+        document.getElementById('btnPausar').classList.remove('oculto');
+        document.getElementById('btnVoltar').classList.add('oculto');
         document.getElementById('alertaMsg').innerText = "Chegou a hora. Respira e decide com consciência.";
     } else {
         document.getElementById('contagem').classList.remove('vermelho','azul');
-        document.getElementById('btnEstender').style.display = 'none';
-        document.getElementById('btnParar').style.display = 'none';
-        document.getElementById('btnPausar').style.display = 'block';
-        document.getElementById('btnVoltar').style.display = 'none';
+        document.getElementById('btnEstender').classList.add('oculto'); // ESCONDE
+        document.getElementById('btnParar').classList.add('oculto'); // ESCONDE
+        document.getElementById('btnPausar').classList.remove('oculto');
+        document.getElementById('btnVoltar').classList.add('oculto');
         document.getElementById('alertaMsg').innerText = "";
         const min = Math.floor(Math.max(0,falta)/60000);
         const seg = Math.floor((Math.max(0,falta)%60000)/1000);
@@ -240,7 +272,7 @@ function registreiFumo(){
     pararAlarme();
     dados.historico.push({data: new Date().toISOString(), tipo: 'fumou'});
     dados.aguardandoRegistro = false;
-    dados.proximoFumo = calcularProximo(); // USA NOVA REGRA
+    dados.proximoFumo = calcularProximo();
     salvar();
     mostrarMsg("✅ Registrado! Novo ciclo iniciado.");
     atualizarTela();
@@ -268,10 +300,6 @@ if(dados){
     iniciarTimer();
 } else {
     trocarAba('config', document.querySelectorAll('.tab')[2]);
-}
-
-if('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
 }
 </script>
 </body>
