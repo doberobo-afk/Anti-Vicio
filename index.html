@@ -150,14 +150,25 @@ if('serviceWorker' in navigator){
 }
 
 function agendarNotificacaoSW(){
-  if(!dados ||!('serviceWorker' in navigator)) return;
-  const tempoAteAlarme = dados.proximoFumo - Date.now() - (dados.notificarAntes*60000);
+  if(!dados || !('serviceWorker' in navigator)) return;
+  
+  // Calcula o momento exato em que o alarme deve disparar no futuro
+  const horarioDoAlarme = dados.proximoFumo - (dados.notificarAntes * 60000);
+  const tempoAteAlarme = horarioDoAlarme - Date.now();
+  
   if(tempoAteAlarme > 0){
     navigator.serviceWorker.ready.then(reg => {
-      reg.active.postMessage({type: 'AGENDAR_ALARME', tempo: tempoAteAlarme, dados: dados});
+      // Enviamos o timestamp absoluto e o tempo relativo como segurança
+      reg.active.postMessage({
+        type: 'AGENDAR_ALARME', 
+        tempo: tempoAteAlarme, 
+        horarioDisparo: horarioDoAlarme,
+        dados: dados
+      });
     });
   }
 }
+
 
 function salvarConfig(){
     dados = {horaInicio: document.getElementById('horaInicio').value, horaFim: document.getElementById('horaFim').value, intervaloBase: parseInt(document.getElementById('intervaloInicial').value), ativarSom: document.getElementById('ativarSom').value, ativarVibra: document.getElementById('ativarVibra').value, notificarAntes: parseInt(document.getElementById('notificarAntes').value), dataInicio: new Date().toISOString(), historico: [], proximoFumo: 0, aguardandoRegistro: false, pausado: false};
