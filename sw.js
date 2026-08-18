@@ -8,8 +8,6 @@ const urlsToCache = [
   'alarm_clock.ogg'
 ];
 
-let alarmeTimeout;
-
 // 1. INSTALAR E SALVAR NO CACHE
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -39,37 +37,63 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// 4. RECEBER COMANDO DA PWA PRA AGENDAR ALARME
-self.addEventListener('message', event => {
-  if(event.data.type === 'AGENDAR_ALARME'){
-    clearTimeout(alarmeTimeout);
+// 4. RECEBER COMANDO DA PWA PRA AGENDAR ALARME (CORRIGIDO)
+self.addEventListener('message', async (event) => {
+  if (event.data.type === 'AGENDAR_ALARME') {
     
-    // Só agenda se o tempo for maior que 0
-    if(event.data.tempo > 0){
-      alarmeTimeout = setTimeout(() => {
-        self.registration.showNotification("🚭 Anti-Vício - HORA DO CICLO", {
-          body: "Chegou a hora! Você consegue!",
-          icon: "android-chrome-192x192.png",
-          badge: "android-chrome-192x192.png",
-          vibrate: [500,200,500,200,500,500,200,500],
-          requireInteraction: true, // Notificação não some sozinha
+    // 1. Cancela qualquer notificação anterior agendada para evitar duplicidade
+    const notifications = await self.registration.getNotifications({ tag: 'alarme-antivicio' });
+    notifications.forEach(n => n.close());
+
+    // 2. Transforma o tempo (ms) recebido em um carimbo de hora exato no futuro
+    const horarioDisparo = Date.now() + event.data.tempo;
+
+    if (event.data.tempo > 0) {
+      const opcoes = {
+        body: "Chegou a hora! Você consegue!",
+        icon: "android-chrome-192x192.png",
+        badge: "android-chrome-192x192.png",
+        vibrate:,
+        requireInteraction: true, 
+        tag: "alarme-antivicio",
+        data: { url: self.location.origin },
+        // O SEGREDO: Delega o agendamento ao Relógio do Sistema Operacional
+        showTrigger: new TimestampTrigger(horarioDisparo)
+      };
+
+      try {
+        // Tenta agendar de forma nativa no dispositivo
+        await self.registration.showNotification("🚭 Anti-Vício - HORA DO CICLO", opcoes);
+      } catch (err) {
+        // Fallback: Caso o navegador do celular não suporte a API experimental,
+        // ele dispara na hora avisando para o usuário reabrir o app.
+        await self.registration.showNotification("🚭 Anti-Vício", {
+          body: "Por favor, mantenha o app aberto para cronometrar.",
           tag: "alarme-antivicio"
         });
-      }, event.data.tempo);
+      }
     }
   }
 });
 
-// 5. QUANDO CLICAR NA NOTIFICAÇÃO
+// 5. QUANDO CLICAR NA NOTIFICAÇÃO (MELHORADO)
 self.addEventListener('notificationclick', event => {
   event.notification.close();
+  
+  const urlParaAbrir = event.notification.data ? event.notification.data.url : '/';
+
   event.waitUntil(
-    clients.matchAll({type: 'window'}).then(clientsArr => {
-      // Se já tiver a aba aberta, foca nela
-      const client = clientsArr.find(c => c.visibilityState === 'visible');
-      if(client) return client.focus();
-      // Senão abre nova aba
-      return clients.openWindow('/');
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientsArr => {
+      // Procura qualquer aba do seu PWA que já esteja aberta
+      for (const client of clientsArr) {
+        if ('focus' in client) {
+          return client.focus();
+        }
+      }
+      // Se não tiver nenhuma aba aberta, abre uma nova
+      if (clients.openWindow) {
+        return clients.openWindow(urlParaAbrir);
+      }
     })
   );
 });
